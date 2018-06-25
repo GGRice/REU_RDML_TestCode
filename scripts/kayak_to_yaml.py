@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+import rospy
+from std_msgs.msg import String
+from glider_kayak_sim.msg import STU, UnderwaterGeoPose, UnderwaterGeoPoint
+import time
+import yaml
+
+class KayakReader(object):
+	def __init__(self):
+		stu_sub = rospy.Subscriber("kayak_0/stu_sensor", STU, self.stuCallback)
+		pose_sub = rospy.Subscriber("kayak_0/pose", UnderwaterGeoPose, self.poseCallback)
+		self.temperature = None
+		self.salinity = None
+		self.longitude = None
+		self.latitude = None
+		self.depth = None
+		self.x = None
+		self.y = None
+		self.z = None
+		self.w = None
+
+	def stuCallback(self, data):
+		self.temperature = data.temperature
+		self.salinity = data.salinity
+
+	def poseCallback(self, data):
+		self.longitude = data.position.longitude
+		self.latitude = data.position.latitude
+		self.depth = data.position.depth
+		self.x = data.orientation.x
+		self.y = data.orientation.y
+		self.z = data.orientation.z
+		self.w = data.orientation.w
+
+	def writeYaml(self):
+		kayak_data = dict(Temperature = self.temperature, Salinituy = self.salinity, Longitude = self.longitude, Latitude = self.latitude, Depth = self.depth, X = self.x, Y = self.y, Z = self.z, W = self.w)
+		with open('data.yml', 'w') as outfile:
+			yaml.dump(kayak_data, outfile, default_flow_style=False)
+
+def main():
+	rospy.init_node("kayak_to_yaml")
+	reader = KayakReader()
+
+	rate = rospy.Rate(.1)
+
+	while not rospy.is_shutdown():
+		if reader.temperature is not None and reader.longitude is not None:
+			reader.writeYaml()
+
+	rate.sleep()
+
+
+
+if __name__ == '__main__':
+  try:
+    main()
+  except rospy.ROSInterruptException:
+    pass
+    	
