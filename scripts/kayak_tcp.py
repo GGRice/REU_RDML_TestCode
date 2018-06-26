@@ -12,10 +12,10 @@ from glider_kayak_sim.msg import STU, UnderwaterGeoPose, UnderwaterGeoPoint
 
 
 class KayakReader(object):
-	def __init__(self):
+	def __init__(self, n):
 		#subscribes to kayak_0 sensor and position
-		stu_sub = rospy.Subscriber("kayak_0/stu_sensor", STU, self.stuCallback)
-		pose_sub = rospy.Subscriber("kayak_0/pose", UnderwaterGeoPose, self.poseCallback)
+		stu_sub = rospy.Subscriber("kayak_%d/stu_sensor"%n, STU, self.stuCallback)
+		pose_sub = rospy.Subscriber("kayak_%d/pose"%n, UnderwaterGeoPose, self.poseCallback)
 		
 		#creates variable to hold kayak_0 values
 		self.temperature = None
@@ -46,10 +46,6 @@ class KayakReader(object):
 
 
 def main():
-
-	
-
-
 	# Parsing user input
 	parser = argparse.ArgumentParser()
 	parser.add_argument(
@@ -90,17 +86,70 @@ def main():
 		mode		= args.mode,
 	)
 
-	
+	rospy.init_node("kayak_tcp")
+	reader0 = KayakReader(0)
+	reader1 = KayakReader(1)
+
 	# Keeps requesting the most recent data
 	if(tcp.mode=='client'):
 		try:
 			for i in range(15):
-				print i, tcp.request('kayak_0')
+				print i, yaml.dump(tcp.request('glider-01'))
 				#print i, tcp.request('glider-02')
 		except:
 			pass
 
+	# Keeps providing the most recent data
+	if(tcp.mode=='server'):
+		counter = 0
+		#k0 = dict(Temperature = reader0.temperature, Salinity = reader0.salinity, Latitude = reader0.latitude, Longitude = reader0.longitude, Depth = reader0.depth, x = reader0.x, y = reader0.y, z = reader0.z, w = reader0.w)
+				
+		try:
+			while True:
+				counter += 1
 
+				tcp.database = {
+					'glider-01': {
+						'position': {
+							'lat': -119.0,
+							'lon': 34.0,
+							'depth': 150.0,
+						},
+						'heading': {
+							'x': 0.0,
+							'y': 0.0,
+							'z': 0.0,
+						},
+						'science': {
+							'temperature': 15.0,
+							'salinity': 31.0,
+							'oxygen': 4.5,
+						},
+					},
+					'glider-02': {
+						'position': {
+							'lat': -119.0,
+							'lon': 34.0,
+							'depth': 150.0,
+						},
+						'heading': {
+							'x': 0.0,
+							'y': 0.0,
+							'z': 0.0,
+						},
+						'science': {
+							'temperature': 15.0,
+							'salinity': 31.0,
+							'oxygen': 4.5,
+						},
+					},
+				}
+
+				
+		except:
+			tcp.exit_server()
+
+"""
 	# Keeps providing the most recent data
 	if(tcp.mode=='server'):	
 		#initiates rospy and the reader class
@@ -122,7 +171,7 @@ def main():
 				
 		except:
 			tcp.exit_server()
-
+"""
 
 
 if __name__ == '__main__':
